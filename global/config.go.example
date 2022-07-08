@@ -1,0 +1,4 @@
+package global
+
+var Token string = ""
+var DbPath string = ""
