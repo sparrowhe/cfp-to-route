@@ -29,10 +29,15 @@ func RouterInit(e *echo.Echo) {
 		if route == "" {
 			return h.Error(handler.StatusInvalidData)
 		}
+		routeCache := service.LoadCache(route)
+		if routeCache != nil {
+			return h.Data(ConvertResponse{Code: 200, Data: routeCache})
+		}
 		data, err := service.SegmentToPointsList(service.ParseCFPRoute(route))
 		if err != nil {
 			return err
 		}
+		service.SaveCache(route, data)
 		return h.Data(ConvertResponse{
 			Code: 200,
 			Data: data,
