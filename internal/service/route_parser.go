@@ -11,7 +11,15 @@ type Segment struct {
 	From string `json:"from"`
 	Via  string `json:"via"`
 	To   string `json:"to"`
+	Type uint   `json:"type"`
 }
+
+type EnumType uint
+
+const (
+	Airport uint = iota
+	Waypoint
+)
 
 func notIncludeNumbers(s string) bool {
 	for _, c := range s {
@@ -26,11 +34,15 @@ func ParseCFPRoute(route string) []Segment {
 	segments := []Segment{}
 	tmp := strings.Split(route, " ")
 	for i := 0; i < len(tmp); i++ {
-		if (i+1)%2 == 0 {
+		if i == 0 {
+			segments = append(segments, Segment{From: tmp[i], Type: Airport})
+		} else if i == len(tmp)-1 {
+			segments = append(segments, Segment{From: tmp[i], Type: Airport})
+		} else if (i+2)%2 == 0 {
 			if tmp[i] == "DCT" || (len(tmp[i]) == 5 && notIncludeNumbers(tmp[i])) || (len(tmp[i]) == 3 && notIncludeNumbers(tmp[i])) {
-				segments = append(segments, Segment{From: tmp[i-1], Via: "DCT", To: tmp[i]})
+				segments = append(segments, Segment{From: tmp[i-1], Via: "DCT", To: tmp[i], Type: Waypoint})
 			} else {
-				segments = append(segments, Segment{From: tmp[i-1], To: tmp[i+1], Via: tmp[i]})
+				segments = append(segments, Segment{From: tmp[i-1], To: tmp[i+1], Via: tmp[i], Type: Waypoint})
 			}
 		}
 	}
@@ -60,7 +72,9 @@ func ParseCFPRoute(route string) []Segment {
 func SegmentToPointsList(s []Segment) ([]model.Waypoint, error) {
 	points := make([]model.Waypoint, 0)
 	AirwayDao := dao.GetAirway(global.DB)
+	AirportDao := dao.GetAirport(global.DB)
 	WaypointDao := dao.GetWaypoint(global.DB)
+	var id uint = 0
 	for _, seg := range s {
 		if seg.Via == "DCT" {
 			wp, err := WaypointDao.GetWaypointByName(seg.From)
@@ -69,6 +83,8 @@ func SegmentToPointsList(s []Segment) ([]model.Waypoint, error) {
 			} else if err != nil {
 				return []model.Waypoint{}, err
 			}
+			wp.Id = id
+			id += 1
 			points = append(points, wp)
 			wp, err = WaypointDao.GetWaypointByName(seg.To)
 			if dao.NotFound(err) {
@@ -76,10 +92,26 @@ func SegmentToPointsList(s []Segment) ([]model.Waypoint, error) {
 			} else if err != nil {
 				return []model.Waypoint{}, err
 			}
+			wp.Id = id
+			id += 1
 			points = append(points, wp)
+		} else if seg.Type == Airport {
+			wp, err := AirportDao.GetAirportByIcao(seg.From)
+			if dao.NotFound(err) {
+				continue
+			} else if err != nil {
+				return []model.Waypoint{}, err
+			}
+			points = append(points, model.Waypoint{
+				Id:        id,
+				Name:      wp.Icao,
+				Latitude:  wp.Latitude,
+				Longitude: wp.Longitude,
+			})
+			id += 1
 		} else {
 			wp, err := AirwayDao.GetAirwayByWhereToWhere(seg.Via, seg.From, seg.To)
-			if len(wp) > 1 && wp[0].Point != s[0].From {
+			if len(wp) > 1 && wp[0].Point != s[1].From {
 				wp = wp[1:]
 			}
 			if dao.NotFound(err) {
@@ -89,10 +121,12 @@ func SegmentToPointsList(s []Segment) ([]model.Waypoint, error) {
 			}
 			for _, wp := range wp {
 				points = append(points, model.Waypoint{
+					Id:        id,
 					Name:      wp.Point,
 					Latitude:  wp.Latitude,
 					Longitude: wp.Longitude,
 				})
+				id += 1
 			}
 		}
 	}

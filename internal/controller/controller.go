@@ -4,10 +4,16 @@ import (
 	"cfptoroute/global"
 	"cfptoroute/handler"
 	"cfptoroute/internal/dao"
+	"cfptoroute/internal/model"
 	"cfptoroute/internal/service"
 
 	"github.com/labstack/echo/v4"
 )
+
+type ConvertResponse struct {
+	Code uint             `json:"code"`
+	Data []model.Waypoint `json:"data"`
+}
 
 func RouterInit(e *echo.Echo) {
 	e.GET("/", func(c echo.Context) error {
@@ -27,7 +33,10 @@ func RouterInit(e *echo.Echo) {
 		if err != nil {
 			return err
 		}
-		return h.Data(data)
+		return h.Data(ConvertResponse{
+			Code: 200,
+			Data: data,
+		})
 	})
 	e.GET("/airportInfo", func(c echo.Context) error {
 		token := c.QueryParam("token")

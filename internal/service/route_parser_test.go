@@ -25,7 +25,8 @@ func Init(dbPath string) error {
 
 func Benchmark_SegmentToPointsList(b *testing.B) {
 	Init("../../navdata.db")
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		SegmentToPointsList(ParseCFPRoute("SULAS V17 UBDOB V18 XEBUL G471 PLT A599 ELNEX G204 MULOV V73 SUPAR B221 NINAS G327 LAMEN A593 SADLI Y590 ELGEP Y722 CJU A586 TENAS B467 NULAR L771 DITOR T575 LEMBA P177 TK T657 ERNIK B240 ENM J179 MDO J605 BKA J195 ANN J502 YYJ"))
+		SegmentToPointsList(ParseCFPRoute("BOTPU W47 LOVRA W540 DOVOP H138 ONEBA G212 JTG W236 CTU B213 LXA"))
 	}
 }
