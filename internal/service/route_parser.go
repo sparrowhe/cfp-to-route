@@ -4,6 +4,7 @@ import (
 	"cfptoroute/global"
 	"cfptoroute/internal/dao"
 	"cfptoroute/internal/model"
+	"regexp"
 	"strings"
 )
 
@@ -32,6 +33,8 @@ func notIncludeNumbers(s string) bool {
 
 func ParseCFPRoute(route string) []Segment {
 	segments := []Segment{}
+	SlashRegex := regexp.MustCompile(`\/.*$`)
+	SlashRegex.ReplaceAllString(route, "")
 	tmp := strings.Split(route, " ")
 	for i := 0; i < len(tmp); i++ {
 		if i == 0 {
